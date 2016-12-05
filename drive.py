@@ -1,6 +1,5 @@
 import argparse
 import base64
-import json
 
 import numpy as np
 import socketio
@@ -61,7 +60,7 @@ if __name__ == '__main__':
     help='Path to model definition json. Model weights should be on the same path.')
     args = parser.parse_args()
     with open(args.model, 'r') as jfile:
-        model = model_from_json(json.load(jfile))
+        model = model_from_json(jfile.read())
 
     model.compile("adam", "mse")
     weights_file = args.model.replace('json', 'h5')
