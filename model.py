@@ -4,10 +4,11 @@ from keras.layers.normalization import BatchNormalization
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
 from keras.layers.pooling import GlobalAveragePooling2D
 from keras.optimizers import Adam
-import csv
-from scipy.misc import imread
-import numpy as np
 from keras.applications.inception_v3 import InceptionV3
+from keras.applications.inception_v3 import preprocess_input
+from keras.preprocessing import image
+import csv
+import numpy as np
 
 #using example from Keras documentation https://keras.io/applications/
 
@@ -32,6 +33,18 @@ for layer in base_model.layers:
 with open('model.json', 'w') as jfile:
     jfile.write(model.to_json())
 
+base_path = "/Users/denyskrut/Documents/CarND-behavioral-cloning/"
+base_path_len = len(base_path)
+
+image_size = (320, 160)
+image_chanels = 3
+
+def load_image(img_path):
+    relative_path = "./" + img_path[base_path_len:]
+    img = image.load_img(relative_path)
+    x = image.img_to_array(img)
+    return preprocess_input(x)
+
 steering_angles = []
 center_images = []
 left_images = []
@@ -43,29 +56,23 @@ with open('training/driving_log.csv', 'r') as csvfile:
         steering_angle = float(row[3])
         steering_angles.append(steering_angle)
         
-        center_file = row[0]
-        center_image = imread(center_file)
+        center_image = load_image(row[0])
+        left_image = load_image(row[1])
+        right_image = load_image(row[2])
+        
         center_images.append(center_image)
-
-        left_file = row[1]
-        left_image = imread(left_file)
-        left_images.append(left_image)
-
-        right_file = row[2]
-        right_image = imread(right_file)
-        right_images.append(right_image)
+        #left_images.append(left_image)
+        #right_images.append(right_image)
 
 steering_angles = np.array(steering_angles)
 center_images = np.array(center_images)
-left_images = np.array(left_images)
-right_images = np.array(right_images)
+#left_images = np.asarray(left_images)
+#right_images = np.asarray(right_images)
 
-def process_images(images):
-    return (center_images - 128.)/256.
+steering_coefficient = 0.25
 
-center_images = process_images(center_images)
-left_images = process_images(left_images)
-right_images = process_images(right_images)
+steering_angles_left = steering_angles - steering_coefficient
+steering_angles_right = steering_angles + steering_coefficient
 
 model.compile(loss='mse',
               optimizer=Adam())
@@ -73,7 +80,11 @@ model.compile(loss='mse',
 nb_epoch = 5
     
 model.fit(center_images, steering_angles, nb_epoch=nb_epoch,
-          verbose=1)
+          verbose=1, validation_split=0.1)
+#model.fit(left_images, steering_angles_left, nb_epoch=nb_epoch,
+#      verbose=1, validation_split=0.1)
+#model.fit(right_images, steering_angles_right, nb_epoch=nb_epoch,
+#          verbose=1, validation_split=0.1)
 
 # at this point, the top layers are well trained and we can start fine-tuning
 # convolutional layers from inception V3. We will freeze the bottom N layers
@@ -92,13 +103,16 @@ for layer in model.layers[172:]:
     layer.trainable = True
 
 # we need to recompile the model for these modifications to take effect
-# we use SGD with a low learning rate
 model.compile(loss='mse',
               optimizer=Adam())
 
 # we train our model again (this time fine-tuning the top 2 inception blocks
 # alongside the top Dense layers
 model.fit(center_images, steering_angles, nb_epoch=nb_epoch,
-          verbose=1)
+          verbose=1, validation_split=0.1)
+#model.fit(left_images, steering_angles_left, nb_epoch=nb_epoch,
+#          verbose=1, validation_split=0.1)
+#model.fit(right_images, steering_angles_right, nb_epoch=nb_epoch,
+#          verbose=1, validation_split=0.1)
 
 model.save_weights('model.h5')
