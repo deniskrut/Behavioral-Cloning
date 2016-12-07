@@ -1,12 +1,12 @@
 from keras.models import Sequential, Model
-from keras.layers.core import Dense, Activation, Flatten, Dropout
-from keras.layers.normalization import BatchNormalization
-from keras.layers.convolutional import Convolution2D, MaxPooling2D
+from keras.layers.core import Dense, Dropout
 from keras.layers.pooling import GlobalAveragePooling2D
 from keras.optimizers import Adam
 from keras.applications.inception_v3 import InceptionV3
 from keras.applications.inception_v3 import preprocess_input
 from keras.preprocessing import image
+from keras.constraints import maxnorm
+from keras.regularizers import l2, activity_l2
 import csv
 import numpy as np
 
@@ -20,6 +20,8 @@ x = base_model.output
 x = GlobalAveragePooling2D()(x)
 # let's add a fully-connected layer
 x = Dense(1024, activation='relu')(x)
+#W_constraint = maxnorm(2), W_regularizer=l2(0.1), activity_regularizer=activity_l2(0.1)
+#x = Dropout(0.05)(x)
 # and a logistic layer
 predictions = Dense(1)(x)
 
@@ -46,9 +48,9 @@ def load_image(img_path):
     return preprocess_input(x)
 
 steering_angles = []
-center_images = []
-left_images = []
-right_images = []
+center_image_paths = []
+left_images_paths = []
+right_images_paths = []
 
 with open('training/driving_log.csv', 'r') as csvfile:
     csv_reader = csv.reader(csvfile)
@@ -56,18 +58,17 @@ with open('training/driving_log.csv', 'r') as csvfile:
         steering_angle = float(row[3])
         steering_angles.append(steering_angle)
         
-        center_image = load_image(row[0])
-        left_image = load_image(row[1])
-        right_image = load_image(row[2])
-        
-        center_images.append(center_image)
-        #left_images.append(left_image)
-        #right_images.append(right_image)
+        center_image_paths.append(row[0])
+        left_images_paths.append(row[1])
+        right_images_paths.append(row[2])
+
+def train_model(paths, steering_angles, epoch_count):
+    images = np.asarray([load_image(path) for path in paths])
+
+    model.fit(images, steering_angles, nb_epoch=epoch_count,
+              verbose=1, validation_split=0.1)
 
 steering_angles = np.array(steering_angles)
-center_images = np.array(center_images)
-#left_images = np.asarray(left_images)
-#right_images = np.asarray(right_images)
 
 steering_coefficient = 0.25
 
@@ -78,13 +79,10 @@ model.compile(loss='mse',
               optimizer=Adam())
 
 nb_epoch = 5
-    
-model.fit(center_images, steering_angles, nb_epoch=nb_epoch,
-          verbose=1, validation_split=0.1)
-#model.fit(left_images, steering_angles_left, nb_epoch=nb_epoch,
-#      verbose=1, validation_split=0.1)
-#model.fit(right_images, steering_angles_right, nb_epoch=nb_epoch,
-#          verbose=1, validation_split=0.1)
+
+train_model(center_image_paths, steering_angles, nb_epoch)
+train_model(left_images_paths, steering_angles_left, nb_epoch)
+train_model(right_images_paths, steering_angles_right, nb_epoch)
 
 # at this point, the top layers are well trained and we can start fine-tuning
 # convolutional layers from inception V3. We will freeze the bottom N layers
@@ -106,13 +104,8 @@ for layer in model.layers[172:]:
 model.compile(loss='mse',
               optimizer=Adam())
 
-# we train our model again (this time fine-tuning the top 2 inception blocks
-# alongside the top Dense layers
-model.fit(center_images, steering_angles, nb_epoch=nb_epoch,
-          verbose=1, validation_split=0.1)
-#model.fit(left_images, steering_angles_left, nb_epoch=nb_epoch,
-#          verbose=1, validation_split=0.1)
-#model.fit(right_images, steering_angles_right, nb_epoch=nb_epoch,
-#          verbose=1, validation_split=0.1)
+train_model(center_image_paths, steering_angles, nb_epoch)
+train_model(left_images_paths, steering_angles_left, nb_epoch)
+train_model(right_images_paths, steering_angles_right, nb_epoch)
 
 model.save_weights('model.h5')
