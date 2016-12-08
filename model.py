@@ -13,7 +13,7 @@ import numpy as np
 
 model = Sequential()
 model.add(Convolution2D(32, 3, 3, border_mode='same',
-                        input_shape=(160,320,3,)))
+                        input_shape=(32,32,3,)))
 model.add(Activation('relu'))
 model.add(Convolution2D(32, 3, 3))
 model.add(Activation('relu'))
@@ -41,7 +41,7 @@ base_path_len = len(base_path)
 
 def load_image(img_path):
     relative_path = "./" + img_path[base_path_len:]
-    img = image.load_img(relative_path)
+    img = image.load_img(relative_path, target_size=(32,32))
     x = image.img_to_array(img)
     return preprocess_input(x)
 
@@ -76,10 +76,10 @@ steering_angles_right = steering_angles + steering_coefficient
 model.compile(loss='mse',
               optimizer=Adam())
 
-nb_epoch = 3
+nb_epoch = 1
 
 train_model(center_image_paths, steering_angles, nb_epoch)
-train_model(left_images_paths, steering_angles_left, nb_epoch)
-train_model(right_images_paths, steering_angles_right, nb_epoch)
+#train_model(left_images_paths, steering_angles_left, nb_epoch)
+#train_model(right_images_paths, steering_angles_right, nb_epoch)
 
 model.save_weights('model.h5')

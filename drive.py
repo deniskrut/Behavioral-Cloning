@@ -30,6 +30,7 @@ def telemetry(sid, data):
     # The current image from the center camera of the car
     imgString = data["image"]
     image = Image.open(BytesIO(base64.b64decode(imgString)))
+    image = image.resize((32,32))
     image_array = np.asarray(image)
     
     image_array = ((image_array / 255.) - 0.5) * 2.
