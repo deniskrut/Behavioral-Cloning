@@ -7,6 +7,7 @@ from keras.applications.inception_v3 import preprocess_input
 from keras.preprocessing import image
 import csv
 import numpy as np
+from PIL import ImageOps
 
 
 # Based on this example https://github.com/fchollet/keras/blob/master/examples/cifar10_cnn.py
@@ -39,9 +40,11 @@ with open('model.json', 'w') as jfile:
 base_path = "/Users/denyskrut/Documents/CarND-behavioral-cloning/"
 base_path_len = len(base_path)
 
-def load_image(img_path):
+def load_image(img_path, mirror = False):
     relative_path = "./" + img_path[base_path_len:]
     img = image.load_img(relative_path, target_size=(32,32))
+    if (mirror):
+        img = ImageOps.mirror(img)
     x = image.img_to_array(img)
     return preprocess_input(x)
 
@@ -60,26 +63,32 @@ with open('training/driving_log.csv', 'r') as csvfile:
         left_images_paths.append(row[1])
         right_images_paths.append(row[2])
 
-def train_model(paths, steering_angles, epoch_count):
-    images = np.asarray([load_image(path) for path in paths])
-
-    model.fit(images, steering_angles, nb_epoch=epoch_count,
-              verbose=1, validation_split=0.1)
-
-steering_angles = np.array(steering_angles)
+def load_images(paths, mirror = False):
+    return np.array([load_image(path, mirror) for path in paths])
 
 steering_coefficient = 0.25
 
+steering_angles = np.array(steering_angles)
+
+steering_angles_mirror = steering_angles * -1.
 steering_angles_left = steering_angles - steering_coefficient
 steering_angles_right = steering_angles + steering_coefficient
+
+steering_angles = np.concatenate((steering_angles, steering_angles_mirror))
+#steering_angles = np.concatenate((steering_angles, steering_angles_left))
+#steering_angles = np.concatenate((steering_angles, steering_angles_right))
+
+images = load_images(center_image_paths)
+images = np.concatenate((images, load_images(center_image_paths, mirror = True)))
+#images = np.concatenate((images, load_images(left_images_paths)))
+#images = np.concatenate((images, load_images(right_images_paths)))
 
 model.compile(loss='mse',
               optimizer=Adam())
 
-nb_epoch = 1
+nb_epoch = 2
 
-train_model(center_image_paths, steering_angles, nb_epoch)
-#train_model(left_images_paths, steering_angles_left, nb_epoch)
-#train_model(right_images_paths, steering_angles_right, nb_epoch)
+model.fit(images, steering_angles, nb_epoch=nb_epoch,
+          verbose=1, validation_split=0.1)
 
 model.save_weights('model.h5')
