@@ -9,6 +9,7 @@ from keras.preprocessing.image import ImageDataGenerator
 import csv
 import numpy as np
 from PIL import ImageOps
+from sklearn.model_selection import train_test_split
 
 
 # Based on this example https://github.com/fchollet/keras/blob/master/examples/cifar10_cnn.py
@@ -84,13 +85,15 @@ images = np.concatenate((images, load_images(center_image_paths, mirror = True))
 images = np.concatenate((images, load_images(left_images_paths)))
 images = np.concatenate((images, load_images(right_images_paths)))
 
+images_train, images_val, steering_angles_train, steering_angles_val = train_test_split(images, steering_angles, test_size=0.1, random_state=424242)
+
 model.compile(loss='mse',
               optimizer=Adam())
 
 image_generator = ImageDataGenerator(width_shift_range=0.1, height_shift_range=0.1, zoom_range=0.1, channel_shift_range=0.1, fill_mode='nearest')
 
-nb_epoch = 2
+nb_epoch = 3
 
-model.fit_generator(image_generator.flow(images, steering_angles), samples_per_epoch=len(steering_angles), nb_epoch=nb_epoch, verbose=1)
+model.fit_generator(image_generator.flow(images_train, steering_angles_train), samples_per_epoch=len(steering_angles), nb_epoch=nb_epoch, verbose=1, validation_data=image_generator.flow(images_val, steering_angles_val), nb_val_samples=len(steering_angles_val))
 
 model.save_weights('model.h5')
