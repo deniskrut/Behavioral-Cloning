@@ -5,6 +5,7 @@ from keras.layers.normalization import BatchNormalization
 from keras.optimizers import Adam
 from keras.applications.inception_v3 import preprocess_input
 from keras.preprocessing import image
+from keras.preprocessing.image import ImageDataGenerator
 import csv
 import numpy as np
 from PIL import ImageOps
@@ -66,7 +67,7 @@ with open('training/driving_log.csv', 'r') as csvfile:
 def load_images(paths, mirror = False):
     return np.array([load_image(path, mirror) for path in paths])
 
-steering_coefficient = 0.25
+steering_coefficient = 0.1
 
 steering_angles = np.array(steering_angles)
 
@@ -75,20 +76,21 @@ steering_angles_left = steering_angles - steering_coefficient
 steering_angles_right = steering_angles + steering_coefficient
 
 steering_angles = np.concatenate((steering_angles, steering_angles_mirror))
-#steering_angles = np.concatenate((steering_angles, steering_angles_left))
-#steering_angles = np.concatenate((steering_angles, steering_angles_right))
+steering_angles = np.concatenate((steering_angles, steering_angles_left))
+steering_angles = np.concatenate((steering_angles, steering_angles_right))
 
 images = load_images(center_image_paths)
 images = np.concatenate((images, load_images(center_image_paths, mirror = True)))
-#images = np.concatenate((images, load_images(left_images_paths)))
-#images = np.concatenate((images, load_images(right_images_paths)))
+images = np.concatenate((images, load_images(left_images_paths)))
+images = np.concatenate((images, load_images(right_images_paths)))
 
 model.compile(loss='mse',
               optimizer=Adam())
 
+image_generator = ImageDataGenerator(width_shift_range=0.1, height_shift_range=0.1, zoom_range=0.1, channel_shift_range=0.1, fill_mode='nearest')
+
 nb_epoch = 2
 
-model.fit(images, steering_angles, nb_epoch=nb_epoch,
-          verbose=1, validation_split=0.1)
+model.fit_generator(image_generator.flow(images, steering_angles), samples_per_epoch=len(steering_angles), nb_epoch=nb_epoch, verbose=1)
 
 model.save_weights('model.h5')
