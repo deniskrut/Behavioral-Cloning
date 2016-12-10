@@ -1,4 +1,4 @@
-# Behavioral training
+# Behavioral cloning
 
 ## Design
 
