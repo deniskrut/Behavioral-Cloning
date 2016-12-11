@@ -93,7 +93,9 @@ images = np.concatenate((images, load_images(left_images_paths)))
 images = np.concatenate((images, load_images(right_images_paths)))
 
 # Split data on training and validation
-images_train, images_val, steering_angles_train, steering_angles_val = train_test_split(images, steering_angles, test_size=0.1, random_state=424242)
+images_train, images_val_test, steering_angles_train, steering_angles_val_test = train_test_split(images, steering_angles, test_size=0.2, random_state=424242)
+
+images_test, images_val, steering_angles_test, steering_angles_val = train_test_split(images_val_test, steering_angles_val_test, test_size=0.5, random_state=424242)
 
 # Compile model
 model.compile(loss='mse',
@@ -107,6 +109,10 @@ nb_epoch = 3
 
 # Train the model using generator
 model.fit_generator(image_generator.flow(images_train, steering_angles_train), samples_per_epoch=len(steering_angles), nb_epoch=nb_epoch, verbose=1, validation_data=image_generator.flow(images_val, steering_angles_val), nb_val_samples=len(steering_angles_val))
+
+# Test the model
+loss_test = model.evaluate(images_test, steering_angles_test)
+print("Loss on test data:", loss_test)
 
 # Save weights
 model.save_weights('model.h5')
