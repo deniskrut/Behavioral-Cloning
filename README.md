@@ -10,13 +10,15 @@ Thern I was trying to reuse the InceptionV3 model with weights for my problem. I
 
 So I was looking for something smaller then that. I've tried [CIFAR-10](https://www.cs.toronto.edu/~kriz/cifar.html), with one modification - I've replaced final fully connected layer of size 10 with fully connected layer of size 1. I have removed softmax activation. And that network seem to fit like a glove. It did not overfit and not too long to train. I've started getting some good results. Image size for this neural net is just 32x32, which is very efficient to store and train. It takes only 3 epochs to train.
 
-I've used GPU at the time of trying InceptionV3, but later I settled for a local CPU. Overhead of uploading training data, downloading weights and managing the GPU machine made it not worth it for working with [CIFAR-10](https://www.cs.toronto.edu/~kriz/cifar.html) model.
+I've used GPU at the time of trying InceptionV3, but later I settled for a local CPU. Overhead of uploading training data, downloading weights and managing the GPU machine was not justified for working with [CIFAR-10](https://www.cs.toronto.edu/~kriz/cifar.html) model.
 
 ## Model architecture
 
 This model is inspired by [CIFAR-10](https://www.cs.toronto.edu/~kriz/cifar.html) architecture. It has the same top layers, the only difference is the final layers. I have replaced fully connected layer size 10 to a fully connected layer of size 1. I've also removed softmax activation function after that layer.
 
-Model contains of 4 convolution layers and 2 fully connected layres. First pair of convolution layers has "same" and "valid" borders respectivaly, has 32 filters size 3x3, each followed by relu activation function. Above is followed by max pooling 2d of size 2x2. That is followed by dropout layer with probability of 0.25. Let's call above a "Group 1".
+Model contains of 4 convolution layers and 2 fully connected layres.
+
+First pair of convolution layers has "same" and "valid" borders respectivaly, has 32 filters size 3x3, each followed by relu activation function. Above is followed by max pooling 2d of size 2x2. That is followed by dropout layer with probability of 0.25. Let's call above a "Group 1".
 
 "Group 1" is followed by "Group 2", which is same as group one, except each convolution layer now has 64 filters.
 
